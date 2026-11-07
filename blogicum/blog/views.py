@@ -15,7 +15,7 @@ def category_posts(request, category_slug):
         slug=category_slug,
         is_published=True,
     )
-    post_list = category.post_set.published()
+    post_list = category.posts.published()
     return render(
         request,
         'blog/category.html',
@@ -23,9 +23,9 @@ def category_posts(request, category_slug):
     )
 
 
-def post_detail(request, id):
+def post_detail(request, post_id):
     post = get_object_or_404(
         Post.objects.published(),
-        id=id,
+        id=post_id,
     )
     return render(request, 'blog/detail.html', {'post': post})

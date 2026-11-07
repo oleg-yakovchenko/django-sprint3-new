@@ -1,6 +1,5 @@
 from django.contrib.auth import get_user_model
 from django.db import models
-from django.utils import timezone
 
 from .constants import (
     CATEGORY_STR_MAX_LENGTH,
@@ -11,23 +10,13 @@ from .constants import (
     PUB_DATE_HELP_TEXT,
     SLUG_HELP_TEXT,
 )
+from .querysets import PostQuerySet
 
 User = get_user_model()
 
 
-class PostQuerySet(models.QuerySet):
-    """QuerySet с методом для фильтрации опубликованных публикаций."""
-
-    def published(self):
-        return self.filter(
-            is_published=True,
-            category__is_published=True,
-            pub_date__lte=timezone.now(),
-        )
-
-
-class BaseModel(models.Model):
-    """Абстрактная модель с общими полями."""
+class IsPublishedCreatedModel(models.Model):
+    """Абстрактная модель с полями is_published и created_at."""
 
     is_published = models.BooleanField(
         default=True,
@@ -43,7 +32,7 @@ class BaseModel(models.Model):
         abstract = True
 
 
-class Category(BaseModel):
+class Category(IsPublishedCreatedModel):
     title = models.CharField(
         max_length=NAME_MAX_LENGTH,
         verbose_name='Заголовок',
@@ -55,7 +44,7 @@ class Category(BaseModel):
         help_text=SLUG_HELP_TEXT,
     )
 
-    class Meta(BaseModel.Meta):
+    class Meta(IsPublishedCreatedModel.Meta):
         verbose_name = 'категория'
         verbose_name_plural = 'Категории'
 
@@ -63,13 +52,13 @@ class Category(BaseModel):
         return self.title[:CATEGORY_STR_MAX_LENGTH]
 
 
-class Location(BaseModel):
+class Location(IsPublishedCreatedModel):
     name = models.CharField(
         max_length=NAME_MAX_LENGTH,
         verbose_name='Название места',
     )
 
-    class Meta(BaseModel.Meta):
+    class Meta(IsPublishedCreatedModel.Meta):
         verbose_name = 'местоположение'
         verbose_name_plural = 'Местоположения'
 
@@ -77,7 +66,7 @@ class Location(BaseModel):
         return self.name[:LOCATION_STR_MAX_LENGTH]
 
 
-class Post(BaseModel):
+class Post(IsPublishedCreatedModel):
     objects = PostQuerySet.as_manager()
 
     title = models.CharField(
@@ -92,6 +81,7 @@ class Post(BaseModel):
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
+        related_name='posts',
         verbose_name='Автор публикации',
     )
     location = models.ForeignKey(
@@ -99,12 +89,14 @@ class Post(BaseModel):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
+        related_name='posts',
         verbose_name='Местоположение',
     )
     category = models.ForeignKey(
         Category,
         on_delete=models.SET_NULL,
         null=True,
+        related_name='posts',
         verbose_name='Категория',
     )
 
